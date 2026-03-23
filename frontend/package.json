@@ -1,0 +1,16 @@
+{
+  "name": "headball-frontend",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "kaboom": "^3000.1.17",
+    "kaplay": "^3001.0.19",
+    "socket.io-client": "^4.8.3"
+  },
+  "devDependencies": {
+    "vite": "^5.4.21"
+  }
+}

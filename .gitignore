@@ -1,0 +1,23 @@
+# Configuración del sistema y editores
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Dependencias (NUNCA se suben, se instalan con comandos)
+node_modules/
+vendor/
+
+# Archivos de entorno (Contienen contraseñas y claves API)
+.env
+.env.local
+.env.*.local
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Archivos de log y temporales
+npm-debug.log*
+yarn-error.log*
+.phpunit.result.cache
