@@ -2,13 +2,13 @@
   "name": "headball-frontend",
   "version": "1.0.0",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --force",
     "build": "vite build"
   },
   "dependencies": {
+    "@colyseus/sdk": "^0.17.35",
     "kaboom": "^3000.1.17",
-    "kaplay": "^3001.0.19",
-    "socket.io-client": "^4.8.3"
+    "kaplay": "^3001.0.19"
   },
   "devDependencies": {
     "vite": "^5.4.21"

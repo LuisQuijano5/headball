@@ -1,31 +1,103 @@
-import { io } from "socket.io-client";
-import kaboom from "kaboom";
+import kaplay from "kaplay"; 
+import { Client } from "@colyseus/sdk";
 
-const socket = io("http://localhost:3000");
 
-kaboom({
-    width: 800,
-    height: 600,
-    background: [135, 206, 235], 
+kaplay({
+    width: 1280,
+    height: 720,
+    letterbox: true,
+    background: [0, 0, 0]
 });
 
-let player1Visual, player2Visual, ballVisual;
+loadSprite("bgd", "../public/assets/stadium2.png");
 
-scene("game", () => {
-    player1Visual = add([ rect(40, 40), pos(0, 0), color(255, 0, 0) ]);
-    player2Visual = add([ rect(40, 40), pos(0, 0), color(0, 0, 255) ]);
-    ballVisual = add([ circle(15), pos(0, 0), color(255, 255, 255) ]);
+const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
+const client = new Client(backendUrl);
 
-    socket.on('gameStateUpdate', (serverState) => {
-        player1Visual.pos.x = serverState.player1.x * width();
-        player1Visual.pos.y = serverState.player1.y * height();
+async function iniciarJuego() {
+    try {
+        console.log("Conectando a:", backendUrl);
+        const room = await client.joinOrCreate("headball_room");
 
-        player2Visual.pos.x = serverState.player2.x * width();
-        player2Visual.pos.y = serverState.player2.y * height();
+        // ✅ FIX 1: In Colyseus 0.17+, the property is roomId, not id!
+        console.log("Conectado a la sala:", room.roomId); 
 
-        ballVisual.pos.x = serverState.ball.x * width();
-        ballVisual.pos.y = serverState.ball.y * height();
-    });
-});
+        // --- ESCENARIO ---
+        add([
+            // ✅ FIX 2: Stretch the background to fit the screen
+            sprite("bgd", { width: 1280, height: 720 }), 
+            pos(0, 0)
+        ]);
 
-go("game");
+        add([
+            rect(1280, 720 * 0.10),
+            pos(0, 720 * 0.90),
+            color(50, 150, 50),
+            anchor("topleft")
+        ]);
+
+        // --- PELOTA ---
+        // --- PELOTA ---
+        const pelotaVisual = add([
+            circle(1280 * 0.025),
+            pos(0, 0), 
+            color(255, 255, 255),
+            anchor("center")
+        ]);
+
+        const jugadoresVisuales = {};
+
+        // ✅ THE BULLETPROOF SYNC LOOP
+        room.onStateChange((state) => {
+            
+            // --- 1. SINCRONIZAR PELOTA ---
+            if (state.pelota) {
+                pelotaVisual.pos.x = state.pelota.x;
+                pelotaVisual.pos.y = state.pelota.y;
+                pelotaVisual.angle = state.pelota.rotation;
+            }
+
+            // --- 2. SINCRONIZAR JUGADORES ---
+            if (state.jugadores) {
+                
+                // ✅ SPAWN & UPDATE: Iterar SOLO sobre los jugadores reales usando forEach
+                state.jugadores.forEach((jugador, sessionId) => {
+
+                    // SPAWN: Si el jugador no existe en nuestra pantalla, lo creamos
+                    if (!jugadoresVisuales[sessionId]) {
+                        console.log("Creando visual para jugador:", sessionId);
+                        
+                        // Leer el equipo para asignar color
+                        const colorJugador = jugador.equipo === "local" ? rgb(0, 0, 255) : rgb(255, 0, 0);
+                        
+                        jugadoresVisuales[sessionId] = add([
+                            rect(jugador.width, jugador.height),
+                            pos(jugador.x, jugador.y),
+                            color(colorJugador),
+                            anchor("center")
+                        ]);
+                    }
+
+                    // UPDATE: Actualizar la posición del sprite
+                    jugadoresVisuales[sessionId].pos.x = jugador.x;
+                    jugadoresVisuales[sessionId].pos.y = jugador.y;
+                });
+
+                // ✅ REMOVE: Si tenemos un sprite, pero ya no está en el servidor, lo borramos
+                for (const sessionId in jugadoresVisuales) {
+                    // Usar .has() para comprobar de forma segura si existe en el backend
+                    if (!state.jugadores.has(sessionId)) {
+                        console.log("Eliminando visual para jugador:", sessionId);
+                        destroy(jugadoresVisuales[sessionId]);
+                        delete jugadoresVisuales[sessionId];
+                    }
+                }
+            }
+        });
+
+    } catch (e) {
+        console.error("Error conectando a Colyseus:", e);
+    }
+}
+
+iniciarJuego();

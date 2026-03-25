@@ -1,38 +1,36 @@
 const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
 const cors = require('cors');
+const http = require('http');
+
+const { Server } = require('@colyseus/core');
+const { WebSocketTransport } = require('@colyseus/ws-transport');
+
+const { HeadBallRoom } = require('./rooms/HeadballRoom');
 
 const app = express();
-app.use(cors());
 
+app.use(cors({
+    origin: "http://localhost:5173",
+    credentials: true
+}));
+
+app.use(express.json());
+
+// ✅ Create HTTP server
 const server = http.createServer(app);
 
-const io = new Server(server, {
-    cors: {
-        origin: "http://localhost:5173",
-        methods: ["GET", "POST"]
-    }
+// ✅ Attach Colyseus to HTTP server
+const gameServer = new Server({
+    transport: new WebSocketTransport({
+        server: server
+    })
 });
 
-let gameState = {
-    player1: { x: 0.1, y: 0.8 },
-    player2: { x: 0.9, y: 0.8 },
-    ball: { x: 0.5, y: 0.5 }
-};
+// ✅ Register room
+gameServer.define("headball_room", HeadBallRoom);
 
-io.on('connection', (socket) => {
-    console.log('Un cliente se ha conectado:', socket.id);
+// ✅ Start server
+const PORT = 3001;
 
-    socket.on('disconnect', () => {
-        console.log('Cliente desconectado:', socket.id);
-    });
-});
-
-setInterval(() => {
-    io.emit('gameStateUpdate', gameState);
-}, 1000 / 60); 
-
-server.listen(3000, () => {
-    console.log('Servidor Back-end corriendo en http://localhost:3000');
-});
+gameServer.listen(PORT);
+console.log(`✅ Server running on http://localhost:${PORT}`);
