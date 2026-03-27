@@ -8,6 +8,9 @@ const { WebSocketTransport } = require('@colyseus/ws-transport');
 
 const { HeadBallRoom } = require('./rooms/HeadballRoom');
 
+const PORT = process.env.BACKEND_PORT|| 3001;
+
+
 const app = express();
 
 app.use(cors({
@@ -17,21 +20,16 @@ app.use(cors({
 
 app.use(express.json());
 
-// Create HTTP server
+
 const server = http.createServer(app);
 
-// Attach Colyseus to HTTP server
 const gameServer = new Server({
     transport: new WebSocketTransport({
         server: server
     })
 });
 
-// Register room
 gameServer.define("headball_room", HeadBallRoom);
-
-// Start server
-const PORT = 3001;
 
 gameServer.listen(PORT);
 console.log(`Server running on http://localhost:${PORT}`);
