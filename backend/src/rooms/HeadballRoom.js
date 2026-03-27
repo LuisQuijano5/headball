@@ -1,9 +1,13 @@
 const { Room } = require("@colyseus/core");
-const { EstadoHeadBall, Jugador } = require("../schema/EstadoHeadball");
+const { EstadoHeadBall } = require("../schema/EstadoHeadball");
+const { Jugador } = require("../schema/Jugador");
 
 class HeadBallRoom extends Room {
     onCreate(options) {
-        console.log("onCreate called ✅");
+        console.log("onCreate called");
+        
+        this.maxClients = 2; 
+        
         this.setState(new EstadoHeadBall());
 
         this.setSimulationInterval((deltaTime) => {
@@ -12,7 +16,7 @@ class HeadBallRoom extends Room {
     }
 
     onJoin(client, options) {
-        console.log("onJoin called ✅", client.sessionId);
+        console.log("onJoin called", client.sessionId);
         const nuevoJugador = new Jugador();
         
         if (this.state.jugadores.size === 0) {
