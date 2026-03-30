@@ -33,22 +33,22 @@ class HeadBallRoom extends Room {
     });
 
     // 3. Crear la Pelota Física
-    this.pelotaBody = Matter.Bodies.circle(
-      this.state.pelota.x,
-      this.state.pelota.y,
-      26, // Equivalente a 1280 * 0.02
-      {
-        restitution: 0.8, // Rebote
-        friction: 0.005,
-        density: 0.001, // Densidad ligera
-      },
-    );
+    // this.pelotaBody = Matter.Bodies.circle(
+    //   this.state.pelota.x,
+    //   this.state.pelota.y,
+    //   26, // Equivalente a 1280 * 0.02
+    //   {
+    //     restitution: 0.8, // Rebote
+    //     friction: 0.005,
+    //     density: 0.001, // Densidad ligera
+    //   },
+    // );
 
     Matter.Composite.add(this.world, [
       suelo,
       paredIzquierda,
       paredDerecha,
-      this.pelotaBody,
+      // this.pelotaBody,
     ]);
 
     // --- ESCUCHAR CONTROLES ---
