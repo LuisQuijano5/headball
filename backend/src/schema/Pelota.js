@@ -4,12 +4,16 @@ const { Entidad } = require("./Entidad");
 class Pelota extends Entidad {
     constructor() {
         super();
-        this.radius = 1280 * 0.02; 
+        this.radius = 26; // 1280 * 0.02
+        this.vx = 0;
+        this.vy = 0;
     }
 }
 
 defineTypes(Pelota, {
-    radius: "number"
+    radius: "number",
+    vx: "number",
+    vy: "number"
 });
 
 module.exports = { Pelota };

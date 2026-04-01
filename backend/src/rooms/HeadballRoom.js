@@ -9,10 +9,22 @@ class HeadBallRoom extends Room {
     this.maxClients = 2;
     this.setState(new EstadoHeadBall());
 
+    // --- CONSTANTES DE FÍSICA ---
+    this.GRAVITY = 1200; // píxeles/segundo²
+    this.BALL_RADIUS = 26;
+    this.IMPACT_FORCE = 800; // Fuerza de impacto inicial
+    this.RESTITUTION_FLOOR = 0.75; // Suelo
+    this.RESTITUTION_WALLS = 0.85; // Paredes laterales
+    this.RESTITUTION_CEILING = 0.5; // Techo
+    this.AIR_FRICTION = 0.98; // Fricción del aire (amortiguamiento por frame)
+    this.ARENA_WIDTH = 1280;
+    this.ARENA_HEIGHT = 720;
+    this.GROUND_Y = 648; // Posición Y del suelo (alineado mejor con jugadores)
+
     // --- INICIALIZAR MATTER.JS ---
     this.engine = Matter.Engine.create();
     this.world = this.engine.world;
-    this.engine.world.gravity.y = 1;
+    this.engine.world.gravity.y = 1; // Gravedad para jugadores; el balón usa gravedad personalizada
 
     // 1. Crear el Suelo Físico (Alineado con césped visual de Kaplay)
     // Kaplay Visual Ground Y = 720 - 72 = 648. Centro del rectángulo en 698.
@@ -33,22 +45,23 @@ class HeadBallRoom extends Room {
     });
 
     // 3. Crear la Pelota Física
-    // this.pelotaBody = Matter.Bodies.circle(
-    //   this.state.pelota.x,
-    //   this.state.pelota.y,
-    //   26, // Equivalente a 1280 * 0.02
-    //   {
-    //     restitution: 0.8, // Rebote
-    //     friction: 0.005,
-    //     density: 0.001, // Densidad ligera
-    //   },
-    // );
+    this.pelotaBody = Matter.Bodies.circle(
+      this.state.pelota.x,
+      this.state.pelota.y,
+      this.BALL_RADIUS,
+      {
+        restitution: 0,
+        friction: 0,
+        density: 0.001,
+        isKinematic: true // Controlaremos su movimiento manualmente
+      },
+    );
 
     Matter.Composite.add(this.world, [
       suelo,
       paredIzquierda,
       paredDerecha,
-      // this.pelotaBody,
+      this.pelotaBody,
     ]);
 
     // --- ESCUCHAR CONTROLES ---
@@ -59,15 +72,85 @@ class HeadBallRoom extends Room {
 
     // --- LOOP DE SIMULACIÓN ---
     this.setSimulationInterval(() => {
-      // 1. Avanzar la física a 60 FPS estables
-      Matter.Engine.update(this.engine, 1000 / 60);
+      const deltaTime = 1000 / 60; // 16.67ms a 60 FPS
+      const dt = deltaTime / 1000; // Convertir a segundos
 
-      // 2. Sincronizar la Pelota (Convertimos radianes a grados para Kaplay)
-      this.state.pelota.x = this.pelotaBody.position.x;
-      this.state.pelota.y = this.pelotaBody.position.y;
-      this.state.pelota.rotation = this.pelotaBody.angle * (180 / Math.PI);
+      // --- ACTUALIZAR FÍSICAS DE MATTER.JS (para jugadores y gravedad) ---
+      Matter.Engine.update(this.engine, deltaTime);
 
-      // 3. Controlar y Sincronizar Jugadores
+      // --- FÍSICA DEL BALÓN ---
+      // 1. Aplicar gravedad personalizada
+      this.state.pelota.vy += (this.GRAVITY * dt);
+
+      // 2. Aplicar fricción del aire (amortiguamiento)
+      this.state.pelota.vx *= this.AIR_FRICTION;
+      this.state.pelota.vy *= this.AIR_FRICTION;
+
+      // 3. Actualizar posición del balón
+      this.state.pelota.x += (this.state.pelota.vx * dt);
+      this.state.pelota.y += (this.state.pelota.vy * dt);
+
+      // --- DETECCIÓN DE COLISIÓN JUGADOR-BALÓN ---
+      this.state.jugadores.forEach((jugador, sessionId) => {
+        if (jugador.fisica) {
+          // Calcular distancia entre centros
+          const dx = this.state.pelota.x - jugador.x;
+          const dy = this.state.pelota.y - jugador.y;
+          const distancia = Math.sqrt(dx * dx + dy * dy);
+
+          const distanciaMinima = (jugador.width / 2) + this.BALL_RADIUS;
+
+          // Si hay colisión
+          if (distancia < distanciaMinima) {
+            // Calcular dirección del rebote (vector normalizado)
+            const nx = dx / distancia;
+            const ny = dy / distancia;
+
+            // Velocidad del jugador en el momento del impacto
+            const vpx = jugador.fisica.velocity.x;
+            const vpy = jugador.fisica.velocity.y;
+
+            // Calcular nueva velocidad del balón
+            this.state.pelota.vx = (vpx * 0.5) + (nx * this.IMPACT_FORCE);
+            this.state.pelota.vy = (vpy * 0.5) + (ny * this.IMPACT_FORCE);
+
+            // Separar el balón del jugador para evitar múltiples colisiones
+            this.state.pelota.x = jugador.x + (nx * distanciaMinima);
+            this.state.pelota.y = jugador.y + (ny * distanciaMinima);
+          }
+        }
+      });
+
+      // --- REBOTES CON PAREDES Y SUELO ---
+      // Rebote con paredes laterales (izquierda y derecha)
+      if (this.state.pelota.x - this.BALL_RADIUS < 0) {
+        this.state.pelota.x = this.BALL_RADIUS;
+        this.state.pelota.vx = -this.state.pelota.vx * this.RESTITUTION_WALLS;
+      }
+      if (this.state.pelota.x + this.BALL_RADIUS > this.ARENA_WIDTH) {
+        this.state.pelota.x = this.ARENA_WIDTH - this.BALL_RADIUS;
+        this.state.pelota.vx = -this.state.pelota.vx * this.RESTITUTION_WALLS;
+      }
+
+      // Rebote con suelo
+      if (this.state.pelota.y + this.BALL_RADIUS > this.GROUND_Y) {
+        this.state.pelota.y = this.GROUND_Y - this.BALL_RADIUS;
+        this.state.pelota.vy = -this.state.pelota.vy * this.RESTITUTION_FLOOR;
+      }
+
+      // Rebote con techo
+      if (this.state.pelota.y - this.BALL_RADIUS < 0) {
+        this.state.pelota.y = this.BALL_RADIUS;
+        this.state.pelota.vy = -this.state.pelota.vy * this.RESTITUTION_CEILING;
+      }
+
+      // --- SINCRONIZAR POSICIÓN DEL PELOTABODY CON EL ESTADO ---
+      Matter.Body.setPosition(this.pelotaBody, {
+        x: this.state.pelota.x,
+        y: this.state.pelota.y
+      });
+
+      // --- CONTROLAR Y SINCRONIZAR JUGADORES ---
       this.state.jugadores.forEach((jugador, sessionId) => {
         if (jugador.fisica) {
           let vx = jugador.fisica.velocity.x;
