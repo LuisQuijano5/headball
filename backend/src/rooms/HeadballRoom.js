@@ -28,7 +28,7 @@ class HeadBallRoom extends Room {
 
     // 1. Crear el Suelo Físico (Alineado con césped visual de Kaplay)
     // Kaplay Visual Ground Y = 720 - 72 = 648. Centro del rectángulo en 698.
-    const suelo = Matter.Bodies.rectangle(
+    this.suelo = Matter.Bodies.rectangle(
       1280 / 2,
       698, // Centro Y
       1280,
@@ -53,12 +53,12 @@ class HeadBallRoom extends Room {
         restitution: 0,
         friction: 0,
         density: 0.001,
-        isKinematic: true // Controlaremos su movimiento manualmente
+        isKinematic: true, // Controlaremos su movimiento manualmente
       },
     );
 
     Matter.Composite.add(this.world, [
-      suelo,
+      this.suelo,
       paredIzquierda,
       paredDerecha,
       this.pelotaBody,
@@ -80,15 +80,15 @@ class HeadBallRoom extends Room {
 
       // --- FÍSICA DEL BALÓN ---
       // 1. Aplicar gravedad personalizada
-      this.state.pelota.vy += (this.GRAVITY * dt);
+      this.state.pelota.vy += this.GRAVITY * dt;
 
       // 2. Aplicar fricción del aire (amortiguamiento)
       this.state.pelota.vx *= this.AIR_FRICTION;
       this.state.pelota.vy *= this.AIR_FRICTION;
 
       // 3. Actualizar posición del balón
-      this.state.pelota.x += (this.state.pelota.vx * dt);
-      this.state.pelota.y += (this.state.pelota.vy * dt);
+      this.state.pelota.x += this.state.pelota.vx * dt;
+      this.state.pelota.y += this.state.pelota.vy * dt;
 
       // --- DETECCIÓN DE COLISIÓN JUGADOR-BALÓN ---
       this.state.jugadores.forEach((jugador, sessionId) => {
@@ -98,7 +98,7 @@ class HeadBallRoom extends Room {
           const dy = this.state.pelota.y - jugador.y;
           const distancia = Math.sqrt(dx * dx + dy * dy);
 
-          const distanciaMinima = (jugador.width / 2) + this.BALL_RADIUS;
+          const distanciaMinima = jugador.width / 2 + this.BALL_RADIUS;
 
           // Si hay colisión
           if (distancia < distanciaMinima) {
@@ -111,12 +111,12 @@ class HeadBallRoom extends Room {
             const vpy = jugador.fisica.velocity.y;
 
             // Calcular nueva velocidad del balón
-            this.state.pelota.vx = (vpx * 0.5) + (nx * this.IMPACT_FORCE);
-            this.state.pelota.vy = (vpy * 0.5) + (ny * this.IMPACT_FORCE);
+            this.state.pelota.vx = vpx * 0.5 + nx * this.IMPACT_FORCE;
+            this.state.pelota.vy = vpy * 0.5 + ny * this.IMPACT_FORCE;
 
             // Separar el balón del jugador para evitar múltiples colisiones
-            this.state.pelota.x = jugador.x + (nx * distanciaMinima);
-            this.state.pelota.y = jugador.y + (ny * distanciaMinima);
+            this.state.pelota.x = jugador.x + nx * distanciaMinima;
+            this.state.pelota.y = jugador.y + ny * distanciaMinima;
           }
         }
       });
@@ -147,7 +147,7 @@ class HeadBallRoom extends Room {
       // --- SINCRONIZAR POSICIÓN DEL PELOTABODY CON EL ESTADO ---
       Matter.Body.setPosition(this.pelotaBody, {
         x: this.state.pelota.x,
-        y: this.state.pelota.y
+        y: this.state.pelota.y,
       });
 
       // --- CONTROLAR Y SINCRONIZAR JUGADORES ---
@@ -165,9 +165,51 @@ class HeadBallRoom extends Room {
             vx = 0;
           }
 
-          // Salto
-          if (jugador.input?.jump && Math.abs(vy) < 0.5) {
-            vy = -15;
+          // --- NUEVA LÓGICA DE SALTO ---
+          if (jugador.input?.jump) {
+            // 1. Recopilamos todos los objetos que sirven de "plataforma"
+            const cuerposParaSaltar = [this.suelo, this.pelotaBody];
+
+            // Añadimos a los otros jugadores (excluyendo al jugador actual)
+            this.state.jugadores.forEach((otroJugador) => {
+              if (otroJugador.fisica && otroJugador.fisica !== jugador.fisica) {
+                cuerposParaSaltar.push(otroJugador.fisica);
+              }
+            });
+
+            // 2. Buscamos si estamos tocando alguno de esos objetos
+            const colisiones = Matter.Query.collides(
+              jugador.fisica,
+              cuerposParaSaltar,
+            );
+            let estaApoyadoEnAlgo = false;
+
+            // 3. Revisamos si el objeto tocado está realmente DEBAJO
+            for (let i = 0; i < colisiones.length; i++) {
+              const colision = colisiones[i];
+
+              // Identificamos cuál de los dos cuerpos chocando es el "otro" objeto
+              const otroCuerpo =
+                colision.bodyA === jugador.fisica
+                  ? colision.bodyB
+                  : colision.bodyA;
+
+              // En Matter.js la Y crece hacia abajo.
+              // Si el centro del otro objeto tiene una Y mayor que el jugador, está debajo.
+              // Sumamos "10" como margen de seguridad para evitar saltar si se rozan de lado.
+              if (otroCuerpo.position.y > jugador.fisica.position.y + 10) {
+                estaApoyadoEnAlgo = true;
+                break; // Encontramos algo debajo, dejamos de buscar
+              }
+            }
+
+            // 4. Ejecutar el salto si las condiciones se cumplen
+            if (estaApoyadoEnAlgo) {
+              vy = -15;
+            }
+
+            // Apagamos el input siempre. Al aplicar la velocidad, el jugador se separará
+            // del objeto en el siguiente frame, garantizando que el salto ocurra "solo una vez".
             jugador.input.jump = false;
           }
 
