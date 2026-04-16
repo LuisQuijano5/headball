@@ -193,9 +193,9 @@ class HeadBallRoom extends Room {
     nuevoJugador.y = 400; 
 
     // --- CREACIÓN DE HITBOX COMPUESTA (Tu código del pie) ---
-    const hitboxCuerpo = Matter.Bodies.rectangle(0, 0, 60, 100, { label: "hitbox_cuerpo" });
+    const hitboxCuerpo = Matter.Bodies.circle(0, 0, 50, { label: "hitbox_cuerpo" });
     const pieX = esLocal ? 28 : -28; 
-    const hitboxPie = Matter.Bodies.circle(pieX, 40, 25, { label: "hitbox_pie" });
+    const hitboxPie = Matter.Bodies.rectangle(pieX, 40, 60, 40, { label: "hitbox_pie" });
 
     const jugadorBody = Matter.Body.create({
       parts: [hitboxCuerpo, hitboxPie],

@@ -31,17 +31,17 @@ export function setupGameSync(room) {
         const isLocal = jugador.equipo === "local";
         const pColor = isLocal ? COLOR_LOCAL : COLOR_VISITANTE;
 
-        // Cuerpo
+        // Cuerpo (Círculo visual)
         jugadoresVisuales[sessionId] = add([
-          rect(jugador.width, jugador.height),
+          circle(50),
           pos(jugador.x, jugador.y),
           color(...pColor),
           anchor("center"),
         ]);
 
-        // Pie (Hitbox circular visual)
+        // Pie (Rectángulo visual)
         piesVisuales[sessionId] = add([
-          circle(25),
+          rect(60, 40),
           pos(0, 0),
           color(...pColor),
           anchor("center"),
