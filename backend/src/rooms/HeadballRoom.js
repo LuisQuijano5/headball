@@ -1,31 +1,31 @@
-// Importación de dependencias necesarias
-const { Room } = require("@colyseus/core");  // Clase base para salas de Colyseus
-const Matter = require("matter-js");          // Motor de física 2D
-const { EstadoHeadBall } = require("../schema/EstadoHeadball");  // Estado compartido
-const { Jugador } = require("../schema/Jugador");                // Esquema del jugador
+// src/rooms/HeadballRoom.js
+
+const { Room } = require("@colyseus/core");
+const { EstadoHeadBall } = require("../schema/EstadoHeadball");
+
+const { PhysicsManager } = require("./modules/PhysicsManager");
+const { BallManager } = require("./modules/BallManager");
+const { PlayerManager } = require("./modules/PlayerManager");
+const { GameStateManager } = require("./modules/GameStateManager");
+const { GoalManager } = require("./modules/GoalManager");
 
 /**
  * Sala principal del juego Headball
- * Maneja la lógica de física, colisiones, goles y sincronización
+ * Orquesta los módulos de física, jugadores, pelota y goles.
  */
 class HeadBallRoom extends Room {
-  
-  /**
-   * Se ejecuta cuando la sala es creada
-   * Configura todas las constantes, el motor de física y los eventos
-   */
+
   onCreate(options) {
-    console.log("🏟️ Room HeadBall - VERSIÓN DEFINITIVA (goles y sin escapes)");
-    
-    // Máximo 2 jugadores por partida
+    console.log("🏟️ Room HeadBall - VERSIÓN DEFINITIVA (modular)");
+
     this.maxClients = 2;
-    
-    // Inicializar el estado compartido (se sincroniza automáticamente con los clientes)
     this.setState(new EstadoHeadBall());
 
-    // Evita que se marquen múltiples goles en milisegundos
-    this.goalLock = false;
+    // Inicializar módulos
+    this.physicsManager = new PhysicsManager();
+    this.physicsManager.initialize();
 
+<<<<<<< HEAD
     // --------------------------------------------------------------
     // 1. CONSTANTES FÍSICAS
     // --------------------------------------------------------------
@@ -99,30 +99,44 @@ class HeadBallRoom extends Room {
       this.state.pelota.x, this.state.pelota.y,
       this.BALL_RADIUS,
       { isSensor: true, restitution: 0.6, friction: 0.1 }
+=======
+    this.ballManager = new BallManager(
+      this.state,
+      this.physicsManager.getWorld(),
+      this.physicsManager.getBallBody()
+>>>>>>> 64609dd (Mis cambios finales)
     );
 
-    // Añadir los cuerpos al mundo físico
-    Matter.Composite.add(this.world, [this.suelo, this.pelotaBody]);
+    this.gameStateManager = new GameStateManager(this.state);
+    
+    this.playerManager = new PlayerManager(
+      this.state,
+      this.physicsManager,
+      this.ballManager,
+      this.gameStateManager  // 🔥 Pasar el gameStateManager directamente
+    );
 
-    // --------------------------------------------------------------
-    // 3. ESCUCHAR EVENTOS DE LOS CLIENTES
-    // --------------------------------------------------------------
-    // Cada cliente envía sus inputs (teclas presionadas)
+    this.goalManager = new GoalManager(
+      this,
+      this.gameStateManager,
+      this.ballManager,
+      this.playerManager
+    );
+
+    // Escuchar mensajes de clientes
     this.onMessage("input", (client, input) => {
       const jugador = this.state.jugadores.get(client.sessionId);
       if (jugador) jugador.input = input;
     });
 
-    // --------------------------------------------------------------
-    // 4. LOOP DE SIMULACIÓN (60 veces por segundo)
-    // --------------------------------------------------------------
+    // Loop de simulación
     this.setSimulationInterval((deltaTime) => {
-      // Limitar deltaTime para evitar saltos muy grandes
-      const dt = Math.min(deltaTime / 1000, 0.033);
+      const dtSec = deltaTime / 1000;
 
-      // 4.1 Actualizar la física de Matter (jugadores)
-      Matter.Engine.update(this.engine, deltaTime);
+      // Actualizar motor de física de Matter (para cuerpos de jugadores)
+      this.physicsManager.update(deltaTime);
 
+<<<<<<< HEAD
 <<<<<<< HEAD
       // 2. Física manual de la pelota
       this.state.pelota.vy += (this.GRAVITY * dt);
@@ -264,13 +278,18 @@ class HeadBallRoom extends Room {
       this.state.pelota.vy *= this.AIR_FRICTION;           // Fricción aire Y
       this.state.pelota.x += this.state.pelota.vx * dt;    // Movimiento X
       this.state.pelota.y += this.state.pelota.vy * dt;    // Movimiento Y
+=======
+      // Actualizar pelota (integración manual)
+      this.ballManager.update(dtSec);
+>>>>>>> 64609dd (Mis cambios finales)
 
-      // Sincronizar el sensor físico con la posición lógica
-      Matter.Body.setPosition(this.pelotaBody, { 
-        x: this.state.pelota.x, 
-        y: this.state.pelota.y 
-      });
+      // Detectar gol (antes de mover jugadores para que la pausa afecte)
+      const goalScored = this.goalManager.checkAndProcessGoal(
+        this.state.pelota.x,
+        this.state.pelota.y
+      );
 
+<<<<<<< HEAD
       // 4.3 REBOTES
       // Rebote con el suelo
       if (this.state.pelota.y + this.BALL_RADIUS > this.GROUND_Y) {
@@ -511,58 +530,21 @@ class HeadBallRoom extends Room {
    * @param {object} client - Cliente que se une
    * @param {object} options - Opciones de unión
    */
-  onJoin(client, options) {
-    console.log("👤 Jugador unido:", client.sessionId);
-    const nuevoJugador = new Jugador();
-    const esLocal = this.state.jugadores.size === 0;  // El primero es local
-    
-    // Asignar equipo y posición inicial
-    nuevoJugador.equipo = esLocal ? "local" : "visitante";
-    nuevoJugador.x = esLocal ? 200 : 1080;   // Izquierda o derecha
-    nuevoJugador.y = this.GROUND_Y - 60;     // Sobre el suelo
-
-    // Crear hitboxes del jugador (cuerpo + pie)
-    const hitboxCuerpo = Matter.Bodies.circle(0, 0, 50, { 
-      label: "hitbox_cuerpo",
-      restitution: 0.3,
-      friction: 0.3
+=======
+      // 🔥 Actualizar jugadores - ahora pasamos el deltaTime y el flag de pausa se consulta internamente
+      this.playerManager.updateAll(deltaTime);
     });
-    
-    const pieX = esLocal ? 28 : -28;  // El pie mira hacia el centro
-    const hitboxPie = Matter.Bodies.rectangle(pieX, 40, 60, 40, { 
-      label: "hitbox_pie",
-      restitution: 0.3,
-      friction: 0.3
-    });
-
-    // Unir las partes en un solo cuerpo físico
-    const jugadorBody = Matter.Body.create({
-      parts: [hitboxCuerpo, hitboxPie],
-      inertia: Infinity,    // No rota (siempre mira hacia adelante)
-      restitution: 0.3,
-      friction: 0.3,
-      mass: 5
-    });
-
-    // Posicionar y añadir al mundo físico
-    Matter.Body.setPosition(jugadorBody, { x: nuevoJugador.x, y: nuevoJugador.y });
-    Matter.Composite.add(this.world, jugadorBody);
-    
-    // Guardar referencia al cuerpo físico en el estado
-    nuevoJugador.fisica = jugadorBody;
-    this.state.jugadores.set(client.sessionId, nuevoJugador);
   }
 
-  /**
-   * Se ejecuta cuando un jugador abandona la sala
-   * @param {object} client - Cliente que se va
-   * @param {boolean} consented - Si abandonó voluntariamente
-   */
+>>>>>>> 64609dd (Mis cambios finales)
+  onJoin(client, options) {
+    console.log("👤 Jugador unido:", client.sessionId);
+    const esLocal = this.state.jugadores.size === 0;
+    this.playerManager.createPlayer(client.sessionId, esLocal);
+  }
+
   onLeave(client, consented) {
-    const jugador = this.state.jugadores.get(client.sessionId);
-    // Eliminar el cuerpo físico del mundo para liberar recursos
-    if (jugador?.fisica) Matter.Composite.remove(this.world, jugador.fisica);
-    this.state.jugadores.delete(client.sessionId);
+    this.playerManager.removePlayer(client.sessionId);
   }
 }
 
