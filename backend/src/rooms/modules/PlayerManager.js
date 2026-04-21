@@ -23,7 +23,7 @@ class PlayerManager {
     this.state = roomState;
     this.physics = physicsManager;
     this.ballManager = ballManager;
-    this.gameStateManager = gameStateManager; // 🔥 Guardar referencia
+    this.gameStateManager = gameStateManager; // ✅ Esto es lo que usa para isMovementPaused()
   }
 
   /**

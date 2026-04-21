@@ -1,9 +1,10 @@
+// frontend/src/sync.js
 const SCREEN_WIDTH = 1280;
 const COLOR_BALL = [255, 255, 255];
 const COLOR_LOCAL = [0, 0, 255];
 const COLOR_VISITANTE = [255, 0, 0];
 
-// Crear elementos HTML para el marcador (si no existen)
+// Crear elementos HTML para el marcador
 function crearMarcador() {
     if (!document.getElementById("score-local")) {
         const div = document.createElement("div");
@@ -27,84 +28,6 @@ function crearMarcador() {
 export function setupGameSync(room) {
     crearMarcador();
 
-<<<<<<< HEAD
-        // Cuerpo (Círculo visual)
-        jugadoresVisuales[sessionId] = add([
-          circle(50),
-          pos(jugador.x, jugador.y),
-          color(...pColor),
-          anchor("center"),
-          z(5), // Cuerpo debajo del pie
-        ]);
-
-        // Pie (Forma base de tenis negro)
-        const pie = add([
-          // 55 de largo, 28 de alto, esquinas redondeadas
-          rect(55, 28, { radius: 14 }), 
-          pos(0, 0),
-          color(20, 20, 20), // Negro casi oscuro
-          anchor("center"),
-          z(11), // Pie por encima del cuerpo
-        ]);
-
-        const direccion = isLocal ? 1 : -1;
-
-        // Punta blanca del tenis
-        const puntaX = 18 * direccion; 
-        pie.add([
-          rect(15, 28, { radius: 10 }),
-          pos(puntaX, 0),
-          color(230, 230, 230),
-          anchor("center"),
-        ]);
-
-        // --- AGUJETAS (NUEVO) ---
-        // Tres líneas blancas en la parte superior
-        const posicionesAgujetas = [8, 0, -8]; // Distribución horizontal en el tenis
-        
-        posicionesAgujetas.forEach((posX) => {
-          const agujeta = pie.add([
-            rect(4, 12, { radius: 2 }), // Líneas delgadas y redondeadas
-            pos(posX * direccion, -10), // Posicionadas en el borde superior (y = -10)
-            color(230, 230, 230),
-            anchor("center"),
-          ]);
-          // Les damos una ligera inclinación para que parezcan entrelazadas
-          agujeta.angle = 20 * direccion; 
-        });
-
-        piesVisuales[sessionId] = pie;
-      }
-
-      const visual = jugadoresVisuales[sessionId];
-      const pie = piesVisuales[sessionId];
-
-      // Actualizar posición del cuerpo
-      visual.pos.x = jugador.x;
-      visual.pos.y = jugador.y;
-
-      // Actualizar posición y animación del pie
-      const isLocal = jugador.equipo === "local";
-      const pieOffsetX = isLocal ? 28 : -28; 
-      
-      if (jugador.pateando) {
-        // --- ANIMACIÓN DE PATADA ALTA ---
-        const extensionX = isLocal ? 40 : -40; // Se lanza hacia adelante
-        const alturaCara = jugador.y; // Sube al centro del jugador (la cara)
-        const rotacionArriba = isLocal ? -60 : 60; // Gira la punta hacia arriba
-        
-        pie.pos.x = jugador.x + extensionX;
-        pie.pos.y = alturaCara; // Altura de la cara
-        pie.angle = rotacionArriba;
-        pie.scale = vec2(1.2, 1.1); // Ligero estiramiento de impacto
-      } else {
-        // --- POSICIÓN NORMAL (REPOSO EN EL SUELO) ---
-        pie.pos.x = jugador.x + pieOffsetX;
-        pie.pos.y = jugador.y + 40; // Abajo, tocando el suelo
-        pie.angle = 0; // Plano
-        pie.scale = vec2(1.0); // Tamaño normal
-      }
-=======
     const pelotaVisual = add([
         circle(26),
         pos(0, 0),
@@ -116,15 +39,14 @@ export function setupGameSync(room) {
     const jugadoresVisuales = {};
     const piesVisuales = {};
 
-    // --- Evento de gol (actualiza marcador y muestra texto) ---
+    // Evento de gol
     room.onMessage("goal", ({ equipo, local, visitante }) => {
-        // Actualizar HTML
         const localSpan = document.getElementById("score-local");
         const visitanteSpan = document.getElementById("score-visitante");
         if (localSpan) localSpan.innerText = local;
         if (visitanteSpan) visitanteSpan.innerText = visitante;
 
-        // Mostrar animación de "GOOOL"
+        // Animación de gol
         const textoGol = add([
             text("¡GOOOL!"),
             pos(SCREEN_WIDTH / 2, 120),
@@ -133,10 +55,9 @@ export function setupGameSync(room) {
             scale(1),
         ]);
         wait(1.2, () => destroy(textoGol));
->>>>>>> c0d0b2f (feat: Implementación de detección de goles y físicas corregidas)
     });
 
-    // --- Sincronización del estado (jugadores y pelota) ---
+    // Sincronización del estado
     room.onStateChange((state) => {
         // Pelota
         if (state.pelota) {
@@ -149,31 +70,73 @@ export function setupGameSync(room) {
             if (!jugadoresVisuales[sessionId]) {
                 const isLocal = jugador.equipo === "local";
                 const pColor = isLocal ? COLOR_LOCAL : COLOR_VISITANTE;
+                
+                // Cuerpo
                 jugadoresVisuales[sessionId] = add([
                     circle(50),
                     pos(jugador.x, jugador.y),
                     color(...pColor),
                     anchor("center"),
+                    z(5),
                 ]);
-                piesVisuales[sessionId] = add([
-                    rect(60, 40),
+
+                // Pie
+                const pie = add([
+                    rect(55, 28, { radius: 14 }),
                     pos(0, 0),
-                    color(...pColor),
+                    color(20, 20, 20),
+                    anchor("center"),
+                    z(11),
+                ]);
+
+                const direccion = isLocal ? 1 : -1;
+
+                // Punta blanca
+                pie.add([
+                    rect(15, 28, { radius: 10 }),
+                    pos(18 * direccion, 0),
+                    color(230, 230, 230),
                     anchor("center"),
                 ]);
+
+                // Agujetas
+                const posicionesAgujetas = [8, 0, -8];
+                posicionesAgujetas.forEach((posX) => {
+                    pie.add([
+                        rect(4, 12, { radius: 2 }),
+                        pos(posX * direccion, -10),
+                        color(230, 230, 230),
+                        anchor("center"),
+                    ]);
+                });
+
+                piesVisuales[sessionId] = pie;
             }
 
             const visual = jugadoresVisuales[sessionId];
             const pie = piesVisuales[sessionId];
+            const isLocal = jugador.equipo === "local";
+
             visual.pos.x = jugador.x;
             visual.pos.y = jugador.y;
 
-            const isLocal = jugador.equipo === "local";
             const pieOffsetX = isLocal ? 28 : -28;
-            const extension = jugador.pateando ? (isLocal ? 12 : -12) : 0;
-            pie.pos.x = jugador.x + pieOffsetX + extension;
-            pie.pos.y = jugador.y + 40;
-            pie.scale = vec2(jugador.pateando ? 1.2 : 1.0);
+            
+            if (jugador.pateando) {
+                const extensionX = isLocal ? 40 : -40;
+                const alturaCara = jugador.y;
+                const rotacionArriba = isLocal ? -60 : 60;
+                
+                pie.pos.x = jugador.x + extensionX;
+                pie.pos.y = alturaCara;
+                pie.angle = rotacionArriba;
+                pie.scale = vec2(1.2, 1.1);
+            } else {
+                pie.pos.x = jugador.x + pieOffsetX;
+                pie.pos.y = jugador.y + 40;
+                pie.angle = 0;
+                pie.scale = vec2(1);
+            }
         });
 
         // Limpiar jugadores que salieron
@@ -187,7 +150,7 @@ export function setupGameSync(room) {
         }
     });
 
-    // --- Controles ---
+    // Controles
     const inputState = { left: false, right: false, jump: false, kick: false };
     const sendInput = () => room.send("input", inputState);
 
