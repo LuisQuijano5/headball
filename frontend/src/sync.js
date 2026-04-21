@@ -37,15 +37,46 @@ export function setupGameSync(room) {
           pos(jugador.x, jugador.y),
           color(...pColor),
           anchor("center"),
+          z(5), // Cuerpo debajo del pie
         ]);
 
-        // Pie (Rectángulo visual)
-        piesVisuales[sessionId] = add([
-          rect(60, 40),
+        // Pie (Forma base de tenis negro)
+        const pie = add([
+          // 55 de largo, 28 de alto, esquinas redondeadas
+          rect(55, 28, { radius: 14 }), 
           pos(0, 0),
-          color(...pColor),
+          color(20, 20, 20), // Negro casi oscuro
+          anchor("center"),
+          z(11), // Pie por encima del cuerpo
+        ]);
+
+        const direccion = isLocal ? 1 : -1;
+
+        // Punta blanca del tenis
+        const puntaX = 18 * direccion; 
+        pie.add([
+          rect(15, 28, { radius: 10 }),
+          pos(puntaX, 0),
+          color(230, 230, 230),
           anchor("center"),
         ]);
+
+        // --- AGUJETAS (NUEVO) ---
+        // Tres líneas blancas en la parte superior
+        const posicionesAgujetas = [8, 0, -8]; // Distribución horizontal en el tenis
+        
+        posicionesAgujetas.forEach((posX) => {
+          const agujeta = pie.add([
+            rect(4, 12, { radius: 2 }), // Líneas delgadas y redondeadas
+            pos(posX * direccion, -10), // Posicionadas en el borde superior (y = -10)
+            color(230, 230, 230),
+            anchor("center"),
+          ]);
+          // Les damos una ligera inclinación para que parezcan entrelazadas
+          agujeta.angle = 20 * direccion; 
+        });
+
+        piesVisuales[sessionId] = pie;
       }
 
       const visual = jugadoresVisuales[sessionId];
@@ -55,19 +86,27 @@ export function setupGameSync(room) {
       visual.pos.x = jugador.x;
       visual.pos.y = jugador.y;
 
-      // Actualizar posición del pie (coincidiendo con el servidor)
+      // Actualizar posición y animación del pie
       const isLocal = jugador.equipo === "local";
       const pieOffsetX = isLocal ? 28 : -28; 
       
-      // El "estiramiento" al patear ahora es sutil (12 píxeles) para que se vea natural
-      const extension = jugador.pateando ? (isLocal ? 12 : -12) : 0;
-
-      pie.pos.x = jugador.x + pieOffsetX + extension;
-      pie.pos.y = jugador.y + 40;
-
-      // Efecto visual de escala al patear (Crece un 20%)
-      const targetScale = jugador.pateando ? 1.2 : 1.0;
-      pie.scale = vec2(targetScale);
+      if (jugador.pateando) {
+        // --- ANIMACIÓN DE PATADA ALTA ---
+        const extensionX = isLocal ? 40 : -40; // Se lanza hacia adelante
+        const alturaCara = jugador.y; // Sube al centro del jugador (la cara)
+        const rotacionArriba = isLocal ? -60 : 60; // Gira la punta hacia arriba
+        
+        pie.pos.x = jugador.x + extensionX;
+        pie.pos.y = alturaCara; // Altura de la cara
+        pie.angle = rotacionArriba;
+        pie.scale = vec2(1.2, 1.1); // Ligero estiramiento de impacto
+      } else {
+        // --- POSICIÓN NORMAL (REPOSO EN EL SUELO) ---
+        pie.pos.x = jugador.x + pieOffsetX;
+        pie.pos.y = jugador.y + 40; // Abajo, tocando el suelo
+        pie.angle = 0; // Plano
+        pie.scale = vec2(1.0); // Tamaño normal
+      }
     });
 
     // C. Limpieza: Eliminar jugadores que se fueron
