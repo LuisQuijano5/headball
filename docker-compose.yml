@@ -23,4 +23,4 @@ services:
       - /app/node_modules
     env_file:
       - .env  
-    # command: npm run dev -- --host 0.0.0.0
+    command: npm run dev -- --host 0.0.0.0

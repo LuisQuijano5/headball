@@ -1,5 +1,3 @@
-// backend/src/rooms/HeadballRoom.js
-
 const { Room } = require("@colyseus/core");
 const { EstadoHeadBall } = require("../schema/EstadoHeadball");
 
@@ -14,6 +12,7 @@ class HeadBallRoom extends Room {
 
   onCreate(options) {
     console.log("🏟️ Room HeadBall - VERSIÓN MODULAR COMPLETA");
+    console.log("SALA REAL CREADA CON ID:", this.roomId);
 
     this.maxClients = 2;
     this.setState(new EstadoHeadBall());
@@ -65,16 +64,29 @@ class HeadBallRoom extends Room {
       );
       this.playerManager.updateAll(deltaTime);
     });
+
+    this.state.estadoSala = "EMPTY";
   }
 
   onJoin(client, options) {
-    console.log("👤 Jugador unido:", client.sessionId);
+    console.log("Jugador unido:", client.sessionId);
+
+    if (this.clients.length === 1) {
+       this.state.estadoSala = "WAITING";
+    } else if (this.clients.length === 2) {
+       this.state.estadoSala = "FULL";
+    }
+
     const esLocal = this.state.jugadores.size === 0;
     this.playerManager.createPlayer(client.sessionId, esLocal);
   }
 
   onLeave(client, consented) {
     this.playerManager.removePlayer(client.sessionId);
+
+    if (this.clients.length < 2) {
+        this.state.estadoSala = "WAITING";
+    }
   }
 }
 
