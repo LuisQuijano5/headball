@@ -11,7 +11,6 @@ const { GoalManager } = require("./modules/GoalManager");
 // ELIMINADO: const { CountdownManager } = require("./modules/CountdownManager");
 
 class HeadBallRoom extends Room {
-
   onCreate(options) {
     console.log("🏟️ Room HeadBall - VERSIÓN MODULAR COMPLETA");
 
@@ -25,25 +24,25 @@ class HeadBallRoom extends Room {
     this.ballManager = new BallManager(
       this.state,
       this.physicsManager.getWorld(),
-      this.physicsManager.getBallBody()
+      this.physicsManager.getBallBody(),
     );
 
     this.gameStateManager = new GameStateManager(this.state);
-    
+
     this.playerManager = new PlayerManager(
       this.state,
       this.physicsManager,
       this.ballManager,
-      this.gameStateManager
+      this.gameStateManager,
     );
 
     this.goalManager = new GoalManager(
       this,
       this.gameStateManager,
       this.ballManager,
-      this.playerManager
+      this.playerManager,
     );
-    
+
     // ELIMINADO: this.countdownManager = new CountdownManager(this);
     // ELIMINADO: this.gameStarted = false;
 
@@ -57,11 +56,13 @@ class HeadBallRoom extends Room {
     this.setSimulationInterval((deltaTime) => {
       const dtSec = deltaTime / 1000;
 
+      this.gameStateManager.updateTimer(deltaTime);
+
       this.physicsManager.update(deltaTime);
       this.ballManager.update(dtSec);
       this.goalManager.checkAndProcessGoal(
         this.state.pelota.x,
-        this.state.pelota.y
+        this.state.pelota.y,
       );
       this.playerManager.updateAll(deltaTime);
     });

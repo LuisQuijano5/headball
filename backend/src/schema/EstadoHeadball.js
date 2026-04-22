@@ -4,41 +4,47 @@ const { Pelota } = require("./Pelota");
 const { Porteria } = require("./Porteria");
 
 class EstadoHeadBall extends Schema {
-    constructor() {
-        super();
-        this.jugadores = new MapSchema(); 
-        
-        // Setup Ball
-        this.pelota = new Pelota(); 
-        this.pelota.x = 1280 * 0.50; 
-        this.pelota.y = 720 * 0.30;
-        
-        // Setup Local Goal
-        this.porteriaLocal = new Porteria();
-        this.porteriaLocal.equipo = "local";
-        this.porteriaLocal.x = 1280 * 0.05; // Left edge
-        this.porteriaLocal.y = 720 * 0.70;  // Ground level
+  constructor() {
+    super();
+    this.jugadores = new MapSchema();
 
-        // Setup Visitante Goal
-        this.porteriaVisitante = new Porteria();
-        this.porteriaVisitante.equipo = "visitante";
-        this.porteriaVisitante.x = 1280 * 0.95; // Right edge
-        this.porteriaVisitante.y = 720 * 0.70;  // Ground level
-        
-        this.golesLocal = 0; 
-        this.golesVisitante = 0;
-        this.estadoPartido = "esperando_jugadores"; 
-    }
+    // Setup Ball
+    this.pelota = new Pelota();
+    this.pelota.x = 1280 * 0.5;
+    this.pelota.y = 720 * 0.3;
+
+    // Setup Local Goal
+    this.porteriaLocal = new Porteria();
+    this.porteriaLocal.equipo = "local";
+    this.porteriaLocal.x = 1280 * 0.05; // Left edge
+    this.porteriaLocal.y = 720 * 0.7; // Ground level
+
+    // Setup Visitante Goal
+    this.porteriaVisitante = new Porteria();
+    this.porteriaVisitante.equipo = "visitante";
+    this.porteriaVisitante.x = 1280 * 0.95; // Right edge
+    this.porteriaVisitante.y = 720 * 0.7; // Ground level
+
+    // Ajustado para coincidir con GameStateManager
+    this.golesLocal = 0;
+    this.golesVisitante = 0;
+
+    // Nueva variable para el tiempo (3 minutos = 180 segundos)
+    this.tiempoRestante = 180;
+
+    this.estadoPartido = "esperando_jugadores";
+  }
 }
 
 defineTypes(EstadoHeadBall, {
-    jugadores: { map: Jugador },
-    pelota: Pelota,
-    porteriaLocal: Porteria,
-    porteriaVisitante: Porteria,
-    golesLocal: "number",
-    golesVisitante: "number",
-    estadoPartido: "string"
+  jugadores: { map: Jugador },
+  pelota: Pelota,
+  porteriaLocal: Porteria,
+  porteriaVisitante: Porteria,
+  golesLocal: "number",
+  golesVisitante: "number",
+  tiempoRestante: "number", // <-- Agregado al schema
+  estadoPartido: "string",
 });
 
 module.exports = { EstadoHeadBall };
