@@ -51,6 +51,14 @@ class HeadBallRoom extends Room {
       if (jugador) jugador.input = input;
     });
 
+    this.onMessage("restart", (client) => {
+      if (this.state.estadoPartido === "finalizado") {
+        this.gameStateManager.restartGame();
+        this.playerManager.resetPlayersToSpawn();
+        this.ballManager.resetBall();
+      }
+    });
+
     // Loop de simulación - SIN CONDICIÓN DE gameStarted
     this.setSimulationInterval((deltaTime) => {
       const dtSec = deltaTime / 1000;

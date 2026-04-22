@@ -33,7 +33,7 @@ class GameStateManager {
   }
 
   isMovementPaused() {
-    return this.postGoalPause;
+    return this.postGoalPause || this.state.estadoPartido === "finalizado";
   }
 
   pauseMovement() {
@@ -79,7 +79,7 @@ class GameStateManager {
    * @param {number} deltaTime - Tiempo transcurrido en milisegundos desde el último frame.
    */
   updateTimer(deltaTime) {
-    if (this.state.tiempoRestante > 0) {
+    if (this.state.tiempoRestante > 0 && this.state.estadoPartido !== "finalizado") {
       this.timerAccumulator += deltaTime;
 
       // Cuando pasa 1 segundo (1000ms), reducimos el contador
@@ -89,9 +89,19 @@ class GameStateManager {
 
         if (this.state.tiempoRestante === 0) {
           console.log("tiempo finalizado");
+          this.state.estadoPartido = "finalizado";
         }
       }
     }
+  }
+
+  restartGame() {
+    this.state.golesLocal = 0;
+    this.state.golesVisitante = 0;
+    this.state.tiempoRestante = 180;
+    this.state.estadoPartido = "jugando";
+    this.resetGoalLockAndPause();
+    this.timerAccumulator = 0;
   }
 }
 

@@ -77,26 +77,33 @@ class PlayerManager {
 
       const input = jugador.input || { left: false, right: false, jump: false, kick: false };
 
-      // Lógica de patada
-      if (input.kick && !jugador.pateando) {
-        jugador.pateando = true;
-        jugador.timerPatada = KICK_DURATION;
-        input.kick = false; // consumir evento
-      }
-      if (jugador.pateando) {
-        jugador.timerPatada -= deltaTimeMs;
-        if (jugador.timerPatada <= 0) jugador.pateando = false;
-      }
+      // Si el juego finalizó, congelar al jugador
+      if (this.state.estadoPartido === "finalizado") {
+        jugador.pateando = false;
+        jugador.timerPatada = 0;
+        Matter.Body.setVelocity(jugador.fisica, { x: 0, y: 0 });
+      } else {
+        // Lógica de patada
+        if (input.kick && !jugador.pateando) {
+          jugador.pateando = true;
+          jugador.timerPatada = KICK_DURATION;
+          input.kick = false; // consumir evento
+        }
+        if (jugador.pateando) {
+          jugador.timerPatada -= deltaTimeMs;
+          if (jugador.timerPatada <= 0) jugador.pateando = false;
+        }
 
-      // Colisiones con la pelota (siempre, incluso en pausa)
-      this.handleBallCollisions(jugador);
+        // Colisiones con la pelota
+        this.handleBallCollisions(jugador);
 
-      // 🔥 Verificar si el movimiento está pausado
-      const isPaused = this.gameStateManager.isMovementPaused();
-      
-      // Movimiento y salto (solo si NO está en pausa)
-      if (!isPaused) {
-        this.handleMovement(jugador, input, dt);
+        // 🔥 Verificar si el movimiento está pausado
+        const isPaused = this.gameStateManager.isMovementPaused();
+        
+        // Movimiento y salto (solo si NO está en pausa)
+        if (!isPaused) {
+          this.handleMovement(jugador, input, dt);
+        }
       }
 
       // Sincronizar posición del schema con el cuerpo físico

@@ -33,6 +33,14 @@ class BallManager {
    * @param {number} dt - delta time en segundos
    */
   update(dt) {
+    // Si el juego finalizó, detenemos la pelota
+    if (this.state.estadoPartido === "finalizado") {
+      this.state.pelota.vx = 0;
+      this.state.pelota.vy = 0;
+      Matter.Body.setVelocity(this.ballBody, { x: 0, y: 0 });
+      return;
+    }
+
     // Aplicar gravedad y fricción
     this.state.pelota.vy += GRAVITY * dt;
     this.state.pelota.vx *= AIR_FRICTION;

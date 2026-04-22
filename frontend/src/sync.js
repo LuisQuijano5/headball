@@ -6,6 +6,67 @@ const COLOR_VISITANTE = [255, 0, 0];
 // Variable para controlar que el log de tiempo finalizado en el frontend se haga solo una vez
 let tiempoFinalizadoLogueado = false;
 
+// Crear pantalla de resultados al finalizar el juego
+function crearPantallaFinal(room, golesLocal, golesVisitante) {
+  if (!document.getElementById("end-screen-container")) {
+    const container = document.createElement("div");
+    container.id = "end-screen-container";
+    container.style.position = "absolute";
+    container.style.top = "0";
+    container.style.left = "0";
+    container.style.width = "100%";
+    container.style.height = "100%";
+    container.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
+    container.style.display = "flex";
+    container.style.flexDirection = "column";
+    container.style.alignItems = "center";
+    container.style.justifyContent = "center";
+    container.style.zIndex = "2000";
+    container.style.color = "white";
+    container.style.fontFamily = "Arial, sans-serif";
+
+    const title = document.createElement("h1");
+    title.innerText = "FIM DE JOGO";
+    title.style.fontSize = "60px";
+    title.style.marginBottom = "20px";
+
+    const score = document.createElement("div");
+    score.style.fontSize = "40px";
+    score.style.marginBottom = "40px";
+    
+    let winnerText = "EMPATE";
+    if (golesLocal > golesVisitante) winnerText = "JOGADOR 1 VENCEU";
+    else if (golesVisitante > golesLocal) winnerText = "JOGADOR 2 VENCEU";
+
+    score.innerHTML = `${winnerText}<br><br>Jogador 1: ${golesLocal}<br>Jogador 2: ${golesVisitante}`;
+    score.style.textAlign = "center";
+
+    const btnRestart = document.createElement("button");
+    btnRestart.innerText = "Outro jogo";
+    btnRestart.style.fontSize = "24px";
+    btnRestart.style.padding = "15px 40px";
+    btnRestart.style.cursor = "pointer";
+    btnRestart.style.backgroundColor = "#4CAF50";
+    btnRestart.style.color = "white";
+    btnRestart.style.border = "none";
+    btnRestart.style.borderRadius = "8px";
+    btnRestart.style.fontWeight = "bold";
+
+    btnRestart.onclick = () => {
+      room.send("restart");
+      
+      // Devolver el foco al canvas del juego para que los controles respondan inmediatamente
+      const canvas = document.querySelector("canvas");
+      if (canvas) canvas.focus();
+    };
+
+    container.appendChild(title);
+    container.appendChild(score);
+    container.appendChild(btnRestart);
+    document.body.appendChild(container);
+  }
+}
+
 // Crear elementos HTML para el marcador simulando la imagen
 function crearMarcador() {
   if (!document.getElementById("scoreboard-container")) {
@@ -115,10 +176,17 @@ export function setupGameSync(room) {
       const timeDisplay = document.getElementById("time-display");
       if (timeDisplay) timeDisplay.innerText = `${formatMin}:${formatSeg}`;
 
-      // Imprimir en consola al llegar a cero (solo una vez)
+      // Mostrar pantalla final al llegar a cero
       if (state.tiempoRestante === 0 && !tiempoFinalizadoLogueado) {
         console.log("tiempo finalizado");
         tiempoFinalizadoLogueado = true;
+        crearPantallaFinal(room, state.golesLocal, state.golesVisitante);
+      }
+
+      // Quitar la pantalla final si el juego se reinicia
+      if (state.tiempoRestante > 0 && document.getElementById("end-screen-container")) {
+        document.getElementById("end-screen-container").remove();
+        tiempoFinalizadoLogueado = false;
       }
     }
 
