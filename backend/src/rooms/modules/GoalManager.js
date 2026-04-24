@@ -32,6 +32,7 @@ class GoalManager {
     else if (golDerecha) equipoQueAnota = "local";
 
     if (equipoQueAnota) {
+      console.log(`Gol validado en el servidor para el equipo ${equipoQueAnota}. Timestamp: ${Date.now()} ms`);
       this.processGoal(equipoQueAnota);
       return true;
     }

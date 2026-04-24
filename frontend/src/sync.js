@@ -161,10 +161,20 @@ export function setupGameSync(room) {
     // Actualizar Marcadores
     const localSpan = document.getElementById("score-local");
     const visitanteSpan = document.getElementById("score-visitante");
-    if (localSpan && typeof state.golesLocal !== "undefined")
-      localSpan.innerText = state.golesLocal;
-    if (visitanteSpan && typeof state.golesVisitante !== "undefined")
-      visitanteSpan.innerText = state.golesVisitante;
+    
+    if (localSpan && typeof state.golesLocal !== "undefined") {
+      if (localSpan.innerText !== state.golesLocal.toString()) {
+        console.log(`Marcador Local actualizado visualmente a ${state.golesLocal}. Timestamp: ${Date.now()} ms`);
+        localSpan.innerText = state.golesLocal;
+      }
+    }
+    
+    if (visitanteSpan && typeof state.golesVisitante !== "undefined") {
+      if (visitanteSpan.innerText !== state.golesVisitante.toString()) {
+        console.log(`[OKR7-I2] Marcador Visitante actualizado visualmente a ${state.golesVisitante}. Timestamp: ${Date.now()} ms`);
+        visitanteSpan.innerText = state.golesVisitante;
+      }
+    }
 
     // Actualizar Reloj
     if (typeof state.tiempoRestante !== "undefined") {
