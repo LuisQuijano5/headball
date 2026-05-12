@@ -8,6 +8,8 @@ import { crearSalaPrivada, unirseASala } from "./network.js";
 import { setupEnvironment } from "./environment.js";  
 import { setupGameSync } from "./sync.js";       
 
+
+
 // =============================================================
 // 1. CONFIGURACIÓN DE LA PANTALLA
 // =============================================================
@@ -40,6 +42,13 @@ kaplay({
 loadSprite(SPRITE_ID, SPRITE_PATH);                    
 loadSprite("porteria_izq", "/assets/porteria_izquierda.png");  
 loadSprite("porteria_der", "/assets/porteria_derecha.png");     
+
+loadSprite("elpidio", "/assets/elpidio.png");
+loadSprite("godoy", "/assets/godoy.png");
+loadSprite("luislao", "/assets/luislao.png");
+
+loadSprite("elpidiopie", "/assets/elpidiopie.png");
+loadSprite("godoypie", "/assets/godoypie.png");
 
 // =============================================================
 // 5. FUNCIÓN PARA DIBUJAR LAS PORTERÍAS

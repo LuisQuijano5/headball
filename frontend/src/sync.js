@@ -5,6 +5,7 @@ const COLOR_VISITANTE = [255, 0, 0];
 
 // Variable para controlar que el log de tiempo finalizado en el frontend se haga solo una vez
 let tiempoFinalizadoLogueado = false;
+let pantallaLobby = null;
 
 // Crear pantalla de resultados al finalizar el juego
 function crearPantallaFinal(room, golesLocal, golesVisitante) {
@@ -128,7 +129,224 @@ function crearMarcador() {
   }
 }
 
+function crearLobby(room) {
+
+  if (pantallaLobby) return;
+
+  pantallaLobby = document.createElement("div");
+
+  pantallaLobby.style.position = "absolute";
+  pantallaLobby.style.top = "0";
+  pantallaLobby.style.left = "0";
+  pantallaLobby.style.width = "100%";
+  pantallaLobby.style.height = "100%";
+  pantallaLobby.style.background = `
+    radial-gradient(circle at center, #1e293b 0%, #020617 100%)
+  `;
+  pantallaLobby.style.display = "flex";
+  pantallaLobby.style.flexDirection = "column";
+  pantallaLobby.style.justifyContent = "center";
+  pantallaLobby.style.alignItems = "center";
+  pantallaLobby.style.zIndex = "9999";
+  pantallaLobby.style.color = "white";
+  pantallaLobby.style.fontFamily = "Arial";
+
+  pantallaLobby.innerHTML = `
+  
+    <h1 style="
+      font-size:70px;
+      margin-bottom:10px;
+      letter-spacing:4px;
+      color:white;
+      text-shadow:0 0 20px rgba(255,255,255,0.3);
+    ">
+      HEADBALL
+    </h1>
+
+    <div id="lobby-status" style="
+      font-size:24px;
+      margin-bottom:40px;
+      color:#cbd5e1;
+    ">
+      Esperando jugador...
+    </div>
+
+    <div id="character-selection" style="
+      display:none;
+      width:100%;
+      justify-content:center;
+      align-items:center;
+      gap:120px;
+    ">
+
+      <!-- PLAYER 1 -->
+      <div style="
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+      ">
+
+        <h2 id="player1-title" style="
+          color:#60a5fa;
+          margin-bottom:25px;
+          font-size:36px;
+        ">
+          PLAYER 1
+        </h2>
+
+        <div class="character-grid" style="
+          display:grid;
+          grid-template-columns:repeat(3, 140px);
+          gap:20px;
+        ">
+
+          <img
+            src="/assets/elpidio.png"
+            class="character-option"
+            data-character="elpidio"
+            style="
+              width:140px;
+              height:140px;
+              object-fit:cover;
+              border:4px solid transparent;
+              border-radius:18px;
+              cursor:pointer;
+              transition:0.2s;
+              background:#111827;
+            "
+          />
+
+          <img
+            src="/assets/godoy.png"
+            class="character-option"
+            data-character="godoy"
+            style="
+              width:140px;
+              height:140px;
+              object-fit:cover;
+              border:4px solid transparent;
+              border-radius:18px;
+              cursor:pointer;
+              transition:0.2s;
+              background:#111827;
+            "
+          />
+
+          <img
+            src="/assets/luislao.png"
+            class="character-option"
+            data-character="luislao"
+            style="
+              width:140px;
+              height:140px;
+              object-fit:cover;
+              border:4px solid transparent;
+              border-radius:18px;
+              cursor:pointer;
+              transition:0.2s;
+              background:#111827;
+            "
+          />
+
+        </div>
+
+      </div>
+
+      <!-- PLAYER 2 -->
+      <div  style="
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+      ">
+
+        <h2 id="player2-title" style="
+          color:#f87171;
+          margin-bottom:25px;
+          font-size:36px;
+        ">
+          PLAYER 2
+        </h2>
+
+        <div style="
+          width:480px;
+          height:140px;
+          border:4px dashed rgba(255,255,255,0.2);
+          border-radius:18px;
+          display:flex;
+          justify-content:center;
+          align-items:center;
+          font-size:24px;
+          color:#94a3b8;
+        ">
+          Esperando selección...
+        </div>
+
+      </div>
+
+    </div>
+
+    <button id="btn-ready" style="
+      display:none;
+      margin-top:50px;
+      padding:18px 50px;
+      font-size:24px;
+      font-weight:bold;
+      border:none;
+      border-radius:14px;
+      cursor:pointer;
+      background:#2563eb;
+      color:white;
+      transition:0.2s;
+    ">
+      CONFIRMAR
+    </button>
+  `;
+
+  document.body.appendChild(pantallaLobby);
+
+  let selectedCharacter = null;
+
+  const options = pantallaLobby.querySelectorAll(".character-option");
+
+  options.forEach(option => {
+
+    option.onmouseenter = () => {
+      option.style.transform = "scale(1.06)";
+    };
+
+    option.onmouseleave = () => {
+      option.style.transform = "scale(1)";
+    };
+
+    option.onclick = () => {
+
+      options.forEach(o => {
+        o.style.border = "4px solid transparent";
+      });
+
+      option.style.border = "4px solid #facc15";
+
+      selectedCharacter = option.dataset.character;
+
+      document.getElementById("btn-ready").style.display = "block";
+    };
+  });
+
+  document.getElementById("btn-ready").onclick = () => {
+
+    if (!selectedCharacter) return;
+
+    room.send("selectCharacter", selectedCharacter);
+
+    document.getElementById("btn-ready").innerText =
+      "Esperando rival...";
+
+    document.getElementById("btn-ready").disabled = true;
+  };
+}
+
 export function setupGameSync(room) {
+  crearLobby(room);
   crearMarcador();
 
   const pelotaVisual = add([
@@ -142,13 +360,10 @@ export function setupGameSync(room) {
   const jugadoresVisuales = {};
   const piesVisuales = {};
 
-  // Evento de gol (Opcional: Si el server manda esto, aquí sigue funcionando)
   room.onMessage("goal", ({ equipo, local, visitante }) => {
-    // La actualización de los textos se maneja en onStateChange de forma más robusta,
-    // pero puedes mantener esta animación visual.
     const textoGol = add([
       text("¡GOOOL!"),
-      pos(SCREEN_WIDTH / 2, 200), // Bajé un poco el texto para no tapar el marcador nuevo
+      pos(SCREEN_WIDTH / 2, 200), 
       anchor("center"),
       z(999),
       scale(1.5),
@@ -158,6 +373,68 @@ export function setupGameSync(room) {
 
   // Sincronización del estado
   room.onStateChange((state) => {
+    let soyLocal = true;
+
+    state.jugadores.forEach((jugador, sessionId) => {
+      if (sessionId === room.sessionId) {
+        soyLocal = jugador.equipo === "local";
+        console.log("hey")
+      }
+    });
+
+    const status = document.getElementById("lobby-status");
+    const selection = document.getElementById("character-selection");
+     console.log("heey22");
+
+    if (state.estadoSala === "WAITING") {
+
+      status.innerText = "Esperando segundo jugador...";
+    }
+
+    if (state.estadoSala === "SELECTING") {
+
+      status.innerText = soyLocal
+        ? "Selecciona tu personaje (Jugador 1)"
+        : "Selecciona tu personaje (Jugador 2)";
+
+      selection.style.display = "flex";
+
+      const player1Title = document.getElementById("player1-title");
+      const player2Title = document.getElementById("player2-title");
+
+if (soyLocal) {
+
+  player1Title.style.opacity = "1";
+  player2Title.style.opacity = "0.35";
+
+  player1Title.style.color = "#60a5fa";
+  player2Title.style.color = "#f87171";
+
+  selection.style.flexDirection = "row";
+
+} else {
+
+  player1Title.style.opacity = "0.35";
+  player2Title.style.opacity = "1";
+
+  player2Title.style.color = "#60a5fa";
+  player1Title.style.color = "#f87171";
+    player1Title.innerText = "PLAYER 2";
+  player2Title.innerText = "PLAYER 1";
+
+  selection.style.flexDirection = "row-reverse";
+}
+    }
+
+    if (state.estadoSala === "PLAYING") {
+
+      if (pantallaLobby) {
+        pantallaLobby.remove();
+        pantallaLobby = null;
+      }
+    }
+
+
     // Actualizar Marcadores
     const localSpan = document.getElementById("score-local");
     const visitanteSpan = document.getElementById("score-visitante");
@@ -214,44 +491,71 @@ export function setupGameSync(room) {
 
         // Cuerpo
         jugadoresVisuales[sessionId] = add([
-          circle(50),
-          pos(jugador.x, jugador.y),
-          color(...pColor),
-          anchor("center"),
-          z(5),
-        ]);
+  sprite(jugador.character || "elpidio"),
+  pos(jugador.x, jugador.y),
+  anchor("center"),
+  scale(0.5),
+  z(5),
+]);
 
         // Pie
-        const pie = add([
-          rect(55, 28, { radius: 14 }),
-          pos(0, 0),
-          color(20, 20, 20),
-          anchor("center"),
-          z(11),
-        ]);
+        let pie;
 
-        const direccion = isLocal ? 1 : -1;
+if (jugador.character === "elpidio") {
 
-        // Punta blanca
-        pie.add([
-          rect(15, 28, { radius: 10 }),
-          pos(18 * direccion, 0),
-          color(230, 230, 230),
-          anchor("center"),
-        ]);
+  pie = add([
+    sprite("elpidiopie"),
+    pos(0, 0),
+    anchor("center"),
+    scale(0.45),
+    z(11),
+  ]);
 
-        // Agujetas
-        const posicionesAgujetas = [8, 0, -8];
-        posicionesAgujetas.forEach((posX) => {
-          pie.add([
-            rect(4, 12, { radius: 2 }),
-            pos(posX * direccion, -10),
-            color(230, 230, 230),
-            anchor("center"),
-          ]);
-        });
+} else if (jugador.character === "godoy") {
 
-        piesVisuales[sessionId] = pie;
+  pie = add([
+    sprite("godoypie"),
+    pos(0, 0),
+    anchor("center"),
+    scale(0.45),
+    z(11),
+  ]);
+
+} else {
+
+  // Luislao usa el pie procedural
+  pie = add([
+    rect(85, 28, { radius: 14 }),
+    pos(0, 0),
+    color(20, 20, 20),
+    anchor("center"),
+    z(11),
+  ]);
+
+  const direccion = isLocal ? 1 : -1;
+
+  // Punta blanca
+  pie.add([
+    rect(18, 28, { radius: 10 }),
+    pos(28 * direccion, 0),
+    color(230, 230, 230),
+    anchor("center"),
+  ]);
+
+  // Agujetas
+  const posicionesAgujetas = [14, 0, -14];
+
+  posicionesAgujetas.forEach((posX) => {
+    pie.add([
+      rect(4, 12, { radius: 2 }),
+      pos(posX * direccion, -10),
+      color(230, 230, 230),
+      anchor("center"),
+    ]);
+  });
+}
+
+piesVisuales[sessionId] = pie;
       }
 
       const visual = jugadoresVisuales[sessionId];

@@ -14,6 +14,7 @@ class HeadBallRoom extends Room {
     console.log("SALA REAL CREADA CON ID:", this.roomId);
 
     this.maxClients = 2;
+    this.selecciones = new Map();
     this.setState(new EstadoHeadBall());
 
     // Inicializar módulos
@@ -59,18 +60,46 @@ class HeadBallRoom extends Room {
       }
     });
 
-    // Loop de simulación - SIN CONDICIÓN DE gameStarted
+    this.onMessage("selectCharacter", (client, character) => {
+      console.log(client.sessionId, "eligió", character);
+
+      this.selecciones.set(client.sessionId, character);
+
+      const jugador = this.state.jugadores.get(client.sessionId);
+
+      if (jugador) {
+        jugador.character = character;
+        jugador.ready = true;
+      }
+
+      if (
+        this.clients.length === 2 &&
+        [...this.state.jugadores.values()].every(j => j.ready)
+      ) {
+        console.log("Ambos jugadores listos");
+
+        this.state.estadoSala = "PLAYING";
+      }
+    });
+
     this.setSimulationInterval((deltaTime) => {
+
+      if (this.state.estadoSala !== "PLAYING") {
+        return;
+      }
+
       const dtSec = deltaTime / 1000;
 
       this.gameStateManager.updateTimer(deltaTime);
 
       this.physicsManager.update(deltaTime);
       this.ballManager.update(dtSec);
+
       this.goalManager.checkAndProcessGoal(
         this.state.pelota.x,
         this.state.pelota.y,
       );
+
       this.playerManager.updateAll(deltaTime);
     });
 
@@ -80,14 +109,22 @@ class HeadBallRoom extends Room {
   onJoin(client, options) {
     console.log("Jugador unido:", client.sessionId);
 
-    if (this.clients.length === 1) {
-       this.state.estadoSala = "WAITING";
-    } else if (this.clients.length === 2) {
-       this.state.estadoSala = "FULL";
-    }
+    setTimeout(() => {
 
-    const esLocal = this.state.jugadores.size === 0;
-    this.playerManager.createPlayer(client.sessionId, esLocal);
+      if (this.clients.length === 1) {
+        console.log("NOT HERE")
+        this.state.estadoSala = "WAITING";
+      }
+
+      if (this.clients.length === 2) {
+        console.log("YUES HERE")
+        this.state.estadoSala = "SELECTING";
+      }
+
+    }, 50);
+
+    const esLocal = this.clients.length === 1;
+this.playerManager.createPlayer(client.sessionId, esLocal);
   }
 
   onLeave(client, consented) {
