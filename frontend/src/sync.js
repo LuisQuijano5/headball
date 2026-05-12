@@ -1,4 +1,5 @@
 const SCREEN_WIDTH = 1280;
+const SCREEN_HEIGHT = 720;
 const COLOR_BALL = [255, 255, 255];
 const COLOR_LOCAL = [0, 0, 255];
 const COLOR_VISITANTE = [255, 0, 0];
@@ -335,6 +336,11 @@ function crearLobby(room) {
   document.getElementById("btn-ready").onclick = () => {
 
     if (!selectedCharacter) return;
+    
+    // 🔥 FORZAR DESBLOQUEO DEL AUDIO: Reproducir sonido mudo en el gesto del usuario
+    try {
+      play("gol", { volume: 0.001 });
+    } catch (e) { }
 
     room.send("selectCharacter", selectedCharacter);
 
@@ -360,15 +366,82 @@ export function setupGameSync(room) {
   const jugadoresVisuales = {};
   const piesVisuales = {};
 
+  let isSlowMo = false;
+  let isGoalSoundPlaying = false;
+  let audioGradas = null; // Guardará la referencia al bucle de la afición
+
   room.onMessage("goal", ({ equipo, local, visitante }) => {
-    const textoGol = add([
-      text("¡GOOOL!"),
-      pos(SCREEN_WIDTH / 2, 200), 
-      anchor("center"),
-      z(999),
-      scale(1.5),
-    ]);
-    wait(1.2, () => destroy(textoGol));
+    console.log("⚽ ¡GOL! Animación ejecutándose...");
+
+    // 3. Integración de Sonido: Sin retraso y sin superposición
+    if (!isGoalSoundPlaying) {
+      isGoalSoundPlaying = true;
+      
+      // Reiniciar sonido de gradas al instante para sincronizar con el impacto del GOL
+      if (audioGradas) {
+        audioGradas.stop();
+      }
+      audioGradas = play("gradas", { loop: true, volume: 1.0 });
+
+      try {
+        play("gol", { 
+          speed: 1.0, 
+          volume: 2.5 // Volumen aumentado a 250%
+        });
+      } catch (err) {
+        console.warn("Audio de gol omitido (falta el archivo o hay un error).");
+      }
+      // Liberar el seguro del sonido incondicionalmente a los 2 segundos
+      wait(2, () => isGoalSoundPlaying = false);
+    }
+
+    // Efecto de cámara lenta visual en personajes por 1 segundo
+    isSlowMo = true;
+    wait(1, () => {
+      isSlowMo = false;
+    });
+
+    // Animación de ¡GOOOL! con arco, solapamiento y escalamiento progresivo
+    const lettersData = [
+      { char: "¡", size: 110, xOffset: -300, yOffset: 40 },
+      { char: "G", size: 150, xOffset: -220, yOffset: 15 },
+      { char: "O", size: 180, xOffset: -110, yOffset: -15 },
+      { char: "O", size: 200, xOffset: 0,    yOffset: -30 }, // Punto máximo del arco
+      { char: "O", size: 180, xOffset: 110,  yOffset: -15 },
+      { char: "L", size: 150, xOffset: 220,  yOffset: 15 },
+      { char: "!", size: 110, xOffset: 280,  yOffset: 40 }
+    ];
+
+    const startY = SCREEN_HEIGHT + 150;
+    const centerX = SCREEN_WIDTH / 2;
+    const endYCenter = SCREEN_HEIGHT / 2 - 50;
+
+    lettersData.forEach((data, i) => {
+      const textObj = add([
+        text(data.char, { size: data.size }),
+        pos(centerX + data.xOffset, startY),
+        rotate(12), // Inclinación hacia la derecha (Shear/Italic) para dar velocidad
+        anchor("center"),
+        z(999 + i), // Solapamiento: La "O" pisa a la "G", la siguiente "O" pisa a la anterior, etc.
+        color(255, 215, 0), // Dorado
+        outline(12, rgb(0, 0, 0)), // Borde más grueso para solidificar el bloque
+        opacity(1)
+      ]);
+
+      const targetY = endYCenter + data.yOffset;
+
+      // Efecto de estallido súper rápido: i * 0.05 hace que las letras salgan casi al mismo tiempo
+      wait(i * 0.05, () => {
+        // easeOutBack da ese efecto jugoso de pasarse de largo un poquito y rebotar a su lugar
+        tween(textObj.pos.y, targetY, 0.35, (val) => textObj.pos.y = val, easings.easeOutBack);
+      });
+
+      // Dura menos en pantalla (1.5s) y desaparece suavemente mientras cae un poco
+      wait(1.5, () => {
+        tween(textObj.opacity, 0, 0.3, (val) => textObj.opacity = val, easings.linear).onEnd(() => destroy(textObj));
+        tween(textObj.pos.y, targetY + 30, 0.3, (val) => textObj.pos.y = val, easings.easeInQuad);
+      });
+    });
   });
 
   // Sincronización del estado
@@ -428,6 +501,11 @@ if (soyLocal) {
 
     if (state.estadoSala === "PLAYING") {
 
+      // Iniciar el sonido de fondo de gradas desde el primer segundo de la partida
+      if (!audioGradas) {
+        audioGradas = play("gradas", { loop: true, volume: 1.0 });
+      }
+
       if (pantallaLobby) {
         pantallaLobby.remove();
         pantallaLobby = null;
@@ -479,29 +557,46 @@ if (soyLocal) {
 
     // Pelota
     if (state.pelota) {
-      pelotaVisual.pos.x = state.pelota.x;
-      pelotaVisual.pos.y = state.pelota.y;
+      if (isSlowMo) {
+        pelotaVisual.pos.x = lerp(pelotaVisual.pos.x, state.pelota.x, 0.1);
+        pelotaVisual.pos.y = lerp(pelotaVisual.pos.y, state.pelota.y, 0.1);
+      } else {
+        pelotaVisual.pos.x = state.pelota.x;
+        pelotaVisual.pos.y = state.pelota.y;
+      }
     }
 
     // Jugadores
     state.jugadores.forEach((jugador, sessionId) => {
+      const charName = (jugador.character && jugador.character !== "default" && jugador.character !== "") ? jugador.character : "elpidio";
+
+      // Si el jugador ya existe pero cambió de personaje en el lobby, lo destruimos para recrearlo
+      if (jugadoresVisuales[sessionId] && jugadoresVisuales[sessionId].charName !== charName) {
+        destroy(jugadoresVisuales[sessionId]);
+        destroy(piesVisuales[sessionId]);
+        delete jugadoresVisuales[sessionId];
+        delete piesVisuales[sessionId];
+      }
+
       if (!jugadoresVisuales[sessionId]) {
         const isLocal = jugador.equipo === "local";
         const pColor = isLocal ? COLOR_LOCAL : COLOR_VISITANTE;
+        
 
         // Cuerpo
         jugadoresVisuales[sessionId] = add([
-  sprite(jugador.character || "elpidio"),
+  sprite(charName),
   pos(jugador.x, jugador.y),
   anchor("center"),
   scale(0.5),
   z(5),
 ]);
+        jugadoresVisuales[sessionId].charName = charName; // Guardamos qué personaje es actualmente
 
         // Pie
         let pie;
 
-if (jugador.character === "elpidio") {
+if (charName === "elpidio") {
 
   pie = add([
     sprite("elpidiopie"),
@@ -511,7 +606,7 @@ if (jugador.character === "elpidio") {
     z(11),
   ]);
 
-} else if (jugador.character === "godoy") {
+} else if (charName === "godoy") {
 
   pie = add([
     sprite("godoypie"),
@@ -562,23 +657,28 @@ piesVisuales[sessionId] = pie;
       const pie = piesVisuales[sessionId];
       const isLocal = jugador.equipo === "local";
 
-      visual.pos.x = jugador.x;
-      visual.pos.y = jugador.y;
+      if (isSlowMo) {
+        visual.pos.x = lerp(visual.pos.x, jugador.x, 0.1);
+        visual.pos.y = lerp(visual.pos.y, jugador.y, 0.1);
+      } else {
+        visual.pos.x = jugador.x;
+        visual.pos.y = jugador.y;
+      }
 
       const pieOffsetX = isLocal ? 28 : -28;
 
       if (jugador.pateando) {
         const extensionX = isLocal ? 40 : -40;
-        const alturaCara = jugador.y;
+        const alturaCara = visual.pos.y;
         const rotacionArriba = isLocal ? -60 : 60;
 
-        pie.pos.x = jugador.x + extensionX;
+        pie.pos.x = visual.pos.x + extensionX;
         pie.pos.y = alturaCara;
         pie.angle = rotacionArriba;
         pie.scale = vec2(1.2, 1.1);
       } else {
-        pie.pos.x = jugador.x + pieOffsetX;
-        pie.pos.y = jugador.y + 40;
+        pie.pos.x = visual.pos.x + pieOffsetX;
+        pie.pos.y = visual.pos.y + 40;
         pie.angle = 0;
         pie.scale = vec2(1);
       }

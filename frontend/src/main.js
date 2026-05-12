@@ -8,6 +8,10 @@ import { crearSalaPrivada, unirseASala } from "./network.js";
 import { setupEnvironment } from "./environment.js";  
 import { setupGameSync } from "./sync.js";       
 
+// Importar el sonido directamente
+import sonidoGolUrl from "../sound_effects/sonido_gol.mp3";
+import sonidoGradasUrl from "../sound_effects/sonido_gradas.mp3";
+
 
 
 // =============================================================
@@ -49,6 +53,12 @@ loadSprite("luislao", "/assets/luislao.png");
 
 loadSprite("elpidiopie", "/assets/elpidiopie.png");
 loadSprite("godoypie", "/assets/godoypie.png");
+
+// Cargar el efecto de sonido usando la variable empaquetada por Vite
+loadSound("gol", sonidoGolUrl);
+loadSound("gradas", sonidoGradasUrl);
+// Cargar fuente Luckiest Guy
+loadFont("luckiestguy", "/assets/LuckiestGuy-Regular.ttf");
 
 // =============================================================
 // 5. FUNCIÓN PARA DIBUJAR LAS PORTERÍAS
