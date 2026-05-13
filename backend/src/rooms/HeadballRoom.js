@@ -29,11 +29,17 @@ class HeadBallRoom extends Room {
 
     this.gameStateManager = new GameStateManager(this.state);
 
+    // ✅ NUEVO: Crear callback para pateos válidos
+    const onKickCallback = (equipo) => {
+      this.broadcast("kick", { equipo });
+    };
+
     this.playerManager = new PlayerManager(
       this.state,
       this.physicsManager,
       this.ballManager,
       this.gameStateManager,
+      onKickCallback,
     );
 
     this.goalManager = new GoalManager(

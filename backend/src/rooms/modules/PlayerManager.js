@@ -19,11 +19,12 @@ const {
  * Maneja la creación, movimiento, patadas y colisiones de los jugadores.
  */
 class PlayerManager {
-  constructor(roomState, physicsManager, ballManager, gameStateManager) {
+  constructor(roomState, physicsManager, ballManager, gameStateManager, kickCallback) {
     this.state = roomState;
     this.physics = physicsManager;
     this.ballManager = ballManager;
     this.gameStateManager = gameStateManager; // ✅ Esto es lo que usa para isMovementPaused()
+    this.kickCallback = kickCallback; // ✅ Callback para notificar pateos válidos
   }
 
   /**
@@ -135,6 +136,11 @@ class PlayerManager {
         const esPie = parte.label === "hitbox_pie";
         let potencia = esPie ? (jugador.pateando ? KICK_FORCE : REBOUND_FOOT) : REBOUND_BODY;
         const vpx = jugador.fisica.velocity.x;
+
+        // ✅ NUEVO: Detectar pateo válido (pie + pateando)
+        if (esPie && jugador.pateando && this.kickCallback) {
+          this.kickCallback(jugador.equipo);
+        }
 
         this.ballManager.applyCollisionImpulse(nx, ny, potencia, vpx, esPie, jugador.pateando);
         this.ballManager.resolveOverlap(nx, ny, colision.depth);

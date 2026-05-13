@@ -11,6 +11,7 @@ import { setupGameSync } from "./sync.js";
 // Importar el sonido directamente
 import sonidoGolUrl from "../sound_effects/sonido_gol.mp3";
 import sonidoGradasUrl from "../sound_effects/sonido_gradas.mp3";
+import sonidoPateoUrl from "../sound_effects/sonido_pateo.mp3";
 
 
 
@@ -57,6 +58,7 @@ loadSprite("godoypie", "/assets/godoypie.png");
 // Cargar el efecto de sonido usando la variable empaquetada por Vite
 loadSound("gol", sonidoGolUrl);
 loadSound("gradas", sonidoGradasUrl);
+loadSound("pateo", sonidoPateoUrl); // ✅ NUEVO: Sonido de pateo válido
 // Cargar fuente Luckiest Guy
 loadFont("luckiestguy", "/assets/LuckiestGuy-Regular.ttf");
 

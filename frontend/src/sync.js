@@ -444,6 +444,19 @@ export function setupGameSync(room) {
     });
   });
 
+  // ✅ NUEVO: Listener para sonido de pateo válido
+  room.onMessage("kick", ({ equipo }) => {
+    try {
+      play("pateo", { 
+        speed: 1.0, 
+        volume: 1.5 // Volumen moderado para pateo
+      });
+      console.log("🦶 ¡PATEO VÁLIDO! Equipo:", equipo);
+    } catch (err) {
+      console.warn("Audio de pateo omitido (falta el archivo o hay un error).");
+    }
+  });
+
   // Sincronización del estado
   room.onStateChange((state) => {
     let soyLocal = true;
